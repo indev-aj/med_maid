@@ -1,6 +1,4 @@
-// ignore_for_file: non_constant_identifier_names
-
-import 'dart:ui';
+// ignore_for_file: non_constant_identifier_names, no_leading_underscores_for_local_identifiers
 
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -31,7 +29,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _refreshItem();
   }
@@ -216,39 +213,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: const Icon(Icons.add),
         onPressed: () => _showForm(context, null),
       ),
-      body: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            const Row(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Date"),
-                Text("Time"),
-                Text("BP"),
-                Text("HR"),
-              ],
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _items.length,
-                itemBuilder: (context, index) {
-                  final currentItem = _items[index];
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(currentItem["date"]),
-                      Text(currentItem["time"]),
-                      Text(currentItem["bp"]),
-                      Text(currentItem["hr"]),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
+      body: SingleChildScrollView(
+        child: FittedBox(
+          child: createDataTable(),
         ),
       ),
     );
@@ -275,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
         "key": key,
         "date": item["date"],
         "time": item["time"],
-        "bp": " ${item['systolic']} / ${item['dystolic']}",
+        "bp": "${item['systolic']} / ${item['dystolic']}",
         "hr": item["hr"],
       };
     }).toList();
@@ -324,5 +291,48 @@ class _HomeScreenState extends State<HomeScreen> {
 
     dateController.text = today;
     timeController.text = time;
+  }
+
+  DataTable createDataTable() {
+    return DataTable(columns: createDataColumn(), rows: createDataRow());
+  }
+
+  List<DataColumn> createDataColumn() {
+    return const [
+      DataColumn(label: Text('Date')),
+      DataColumn(label: Text('Time')),
+      DataColumn(label: Text('BP')),
+      DataColumn(label: Text('Heart Rate')),
+    ];
+  }
+
+  List<DataRow> createDataRow() {
+    List<DataRow> result = [];
+
+    if (_items.length <= 0) {
+      result.add(
+        const DataRow(cells: [
+          DataCell(Text("          ")),
+          DataCell(Text("     ")),
+          DataCell(Text(" ")),
+          DataCell(Text("")),
+        ]),
+      );
+    } else {
+      _items.forEach((item) {
+        result.add(
+          DataRow(
+            cells: [
+              DataCell(Text(item["date"].toString())),
+              DataCell(Text(item["time"].toString())),
+              DataCell(Text(item["bp"].toString())),
+              DataCell(Text(item["hr"].toString())),
+            ],
+          ),
+        );
+      });
+    }
+
+    return result;
   }
 }
