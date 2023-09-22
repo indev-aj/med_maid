@@ -23,6 +23,11 @@ class _HomeScreenState extends State<HomeScreen> {
   final bp_box = Hive.box('bp_box');
 
   List<Map<String, dynamic>> _items = [];
+  DateTime selectedDate = DateTime.now();
+  TimeOfDay selectedTime = TimeOfDay.now();
+
+  var dateFormat = DateFormat("dd/MM/yyyy");
+  var timeFormat = DateFormat("HH:mm");
 
   @override
   void initState() {
@@ -40,7 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
       isScrollControlled: true,
       builder: (_) => Container(
         padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 15,
           top: 15,
           right: 15,
           left: 15,
@@ -52,18 +57,39 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: dateController,
-                    decoration:
-                        const InputDecoration(hintText: "Systolic Reading"),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: dateController,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          _selectDate(context);
+                        },
+                        icon: const Icon(Icons.calendar_month_outlined),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 15),
                 Expanded(
-                  child: TextField(
-                    controller: timeController,
-                    decoration:
-                        const InputDecoration(hintText: "Dystolic Reading"),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: timeController,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          _selectTime(context);
+                        },
+                        icon: const Icon(Icons.access_time_rounded),
+                      ),
+                    ],
                   ),
                 )
               ],
@@ -94,27 +120,72 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: const InputDecoration(hintText: "Heart Rate Reading"),
             ),
             const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () async {
-                _createItem({
-                  "date": dateController.text,
-                  "time": timeController.text,
-                  "systolic": systolicController.text,
-                  "dystolic": dystolicController.text,
-                  "hr": hrController.text,
-                });
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    _createItem({
+                      "date": dateController.text,
+                      "time": timeController.text,
+                      "systolic": systolicController.text,
+                      "dystolic": dystolicController.text,
+                      "hr": hrController.text,
+                    });
 
-                systolicController.text = '';
-                dystolicController.text = '';
-                hrController.text = '';
+                    systolicController.text = '';
+                    dystolicController.text = '';
+                    hrController.text = '';
 
-                Navigator.of(context).pop();
-              },
-              child: const Text("Add New Data"),
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text("Add New Data"),
+                ),
+              ],
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _showMyDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('This action is irreversible'),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Are you sure you want to delete all saved data?'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Yes, delete all'),
+              onPressed: () async {
+                _deleteAll();
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Cancel"),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -126,9 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.red,
         actions: [
           IconButton(
-            onPressed: () async {
-              _deleteAll();
-            },
+            onPressed: _showMyDialog,
             icon: const Icon(
               Icons.delete,
               color: Colors.white,
@@ -216,11 +285,39 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _selectDate(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate, // Refer step 1
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2025),
+    );
+    if (picked != null && picked != selectedDate) {
+      setState(() {
+        selectedDate = picked;
+        dateController.text = dateFormat.format(selectedDate);
+      });
+    }
+  }
+
+  void _selectTime(BuildContext context) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: selectedTime,
+    );
+    if (picked != null) {
+      setState(() {
+        selectedTime = picked;
+        var _hour = selectedTime.hour.toString();
+        var _minute = selectedTime.minute.toString();
+        var _time = "$_hour:$_minute";
+        timeController.text = _time;
+      });
+    }
+  }
+
   void getDateTime() {
     var now = DateTime.now();
-
-    var dateFormat = DateFormat("dd/MM/yyyy");
-    var timeFormat = DateFormat("HH:mm");
 
     var today = dateFormat.format(now);
     var time = timeFormat.format(now);
